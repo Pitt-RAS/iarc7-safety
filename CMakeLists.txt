@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   message_generation
   bondcpp
+  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -100,7 +101,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES iarc7_fc_comms
+  LIBRARIES iarc7_safety_safety_client
 #  CATKIN_DEPENDS iarc7_msgs message_runtime
 #  DEPENDS system_lib
 )
@@ -117,14 +118,19 @@ include_directories(
 )
 
 ## Declare a C++ library
-# add_library(iarc7_fc_comms
-#   src/${PROJECT_NAME}/iarc7_fc_comms.cpp
-# )
+add_library(iarc7_safety_safety_client
+  src/${PROJECT_NAME}/SafetyClient.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(iarc7_fc_comms ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(iarc7_safety_safety_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(iarc7_safety_safety_client
+   ${catkin_LIBRARIES}
+ )
 
 ## Declare a C++ executable
 add_executable(iarc7_safety_sim src/iarc7_safety_node.cpp src/SafetyBondsSimulator.cpp)

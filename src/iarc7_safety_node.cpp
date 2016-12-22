@@ -61,7 +61,8 @@ int main(int argc, char **argv)
       bond.start();
 
       // Wait a certain amount of time for the bond to form
-      if (!bond.waitUntilFormed(init_dur)){
+      if (!bond.waitUntilFormed(init_dur))
+      {
          // The bond didn't form,  post an error and stop creating bonds
          // node_monitor should exit now which will break all the bonds it had
          ROS_ERROR("node_monitor: BondId %s could not be formed", bond.getId().c_str());
