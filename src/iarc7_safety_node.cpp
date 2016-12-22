@@ -13,7 +13,10 @@
 
 #include <ros/ros.h>
 #include <bondcpp/bond.h>
-#include <std_msgs/Int32.h>
+
+#include "iarc7_safety/SafetyBonds.hpp"
+
+#include "std_msgs/String.h"
 
 // The time in ms between each safety check
 #define LOOPTIME 200
@@ -36,7 +39,7 @@ int main(int argc, char **argv)
    // Create a publisher to advertise this node's presence.
    // This node should only publish in case of emergency, so queue length is 100
    // TODO : Change std_msgs::String to a custom type
-   ros::Publisher safety_publisher = nHandle.advertise<std_msgs::Int32>("safety", 100);
+   ros::Publisher safety_publisher = nHandle.advertise<std_msgs::String>("safety", 100);
    
    // Specify a time for the message loop to wait between each cycle (ms)
    ros::Rate loop_rate(LOOPTIME);
@@ -46,58 +49,75 @@ int main(int argc, char **argv)
    
    // Print out that the node has started
    ROS_INFO("node_monitor has started.");
-   
-   // Each bond is listed here. The lower the index of the array to the bond the higher priority that bond has.
-   // Priority is used to determine which node is requested to take control upon a safety event.
-   // If a node becomes unsafe (usually due to crashing), the safety node will request via the
-   // safety topic that the node represented by the next higher priority bond in the table to take control.
-   bond::Bond bonds[]{{"low_level_motion_bond_topic", "low_level_motion_bond"}
-                      };
 
-   // This is the lowest priority that is still safe.
-   // It is set based on the amount of bonds safely formed in order.
-   int32_t lowest_safe_priority{-1};
-   for(bond::Bond &bond : bonds)
+   // Initialize bonds
+   // Go through all the bonds to initialize them
+   for(int32_t i = 0; i < num_bonds; i++)
    {
+      // Get a bond
+      bond::Bond& bond = bonds[i];
+
+      // Try to start the bond
       bond.start();
+
+      // Wait a certain amount of time for the bond to form
       if (!bond.waitUntilFormed(init_dur)){
+         // The bond didn't form,  post an error and stop creating bonds
+         // node_monitor should exit now which will break all the bonds it had
          ROS_ERROR("node_monitor: BondId %s could not be formed", bond.getId().c_str());
-         return -1;
-      }
-      {
-         ++lowest_safe_priority;
+         return 0;
       }
    }
+   // End intializing bonds
+
+   // This is the lowest priority that is still safe. It should never be incremented.   
+   int32_t lowest_safe_priority{num_bonds - 1};
 
    // Continuously loop the node program
-   while (true) {
-   
-      int32_t current_safe_node{-1};
-      for(bond::Bond &bond : bonds)
-      {
-         // If the bond is not broken
-         if (!bond.isBroken()){
-            // We can progress to giving control to a less safe priority
-            // Bound at the lowest_safe_priority
-            current_safe_node = current_safe_node < lowest_safe_priority ? current_safe_node + 1 : lowest_safe_priority;
+   while(true)
+   {
+      // Begin checking bonds
+      // Go through every node
+      for(int32_t i = 0; i < num_bonds; i++)
+      {         
+         // If the bond is broken stop looping
+         if (bonds[i].isBroken()){
+            break;
          }
          else
          {
-            lowest_safe_priority = current_safe_node;
+            // Set the current safe priority. Never go to a less safe priority than previously recorded.
+            int32_t safe_priority = i - 1;
+            lowest_safe_priority = safe_priority < lowest_safe_priority ? safe_priority : lowest_safe_priority;
          }
       }
 
-      // Publish the current safe priority
-      std_msgs::Int32 safe_node_id;
-      safe_node_id.data = current_safe_node;
-      safety_publisher.publish(safe_node_id);
-      
-      // Ensure that everything is okay
-      // Note that if this returns false, all ROS calls will fail
+      ROS_ASSERT_MSG(lowest_safe_priority < num_bonds || lowest_safe_priority > -2,
+                     "node_monitor: Lowest safe priority is outside of possible range");
+
+      // If the lowest_safe_priority is less than the number of safety bonds, we have
+      // a safety event
+      if(lowest_safe_priority > -1)
+      {
+         // Publish the current highest level safe node
+         // If a node hears its name it should respond with a safety response
+         std_msgs::String safe_node_name;
+         safe_node_name.data = bonds[lowest_safe_priority].getId();
+         safety_publisher.publish(safe_node_name);
+      }
+      else
+      {
+         // Fatal bond breakage
+         // All nodes should try to exit at this point as they are not safe.
+         std_msgs::String safe_node_name;
+         safe_node_name.data = std::string("FATAL");
+         safety_publisher.publish(safe_node_name);
+      }
+      // End checking bonds
+
+      // Ensure that the node hasn't been shut down.
       if (!ros::ok()) {
-         
-         // TODO : This is only called when ROS fails.
-         //        Figure out what can be salvaged at this point.
+         // If shutdown the bonds will break and any listening nodes will default to a fatal state.
          break;
       }
       
@@ -106,8 +126,7 @@ int main(int argc, char **argv)
       
       // Sleep for a bit 
       loop_rate.sleep();
-   }
+   } // End main loop
 
-    // Error has been handled, so all is good.
     return 0;
 }

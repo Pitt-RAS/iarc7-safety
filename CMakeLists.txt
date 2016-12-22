@@ -65,9 +65,9 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-    DEPENDENCIES
-)
+#generate_messages(
+#    DEPENDENCIES
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -98,12 +98,12 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-#catkin_package(
-#  INCLUDE_DIRS include
+catkin_package(
+  INCLUDE_DIRS include
 #  LIBRARIES iarc7_fc_comms
 #  CATKIN_DEPENDS iarc7_msgs message_runtime
 #  DEPENDS system_lib
-#)
+)
 
 ###########
 ## Build ##
@@ -113,7 +113,7 @@ generate_messages(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  include ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -127,14 +127,14 @@ include_directories(
 # add_dependencies(iarc7_fc_comms ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(iarc7_safety src/iarc7_safety_node.cpp)
+add_executable(iarc7_safety_sim src/iarc7_safety_node.cpp src/SafetyBondsSimulator.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(iarc7_safety ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(iarc7_safety_sim ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(iarc7_safety
+target_link_libraries(iarc7_safety_sim
    ${catkin_LIBRARIES}
  )
 
