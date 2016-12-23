@@ -18,8 +18,8 @@
 
 #include "std_msgs/String.h"
 
-// The time in ms between each safety check
-#define LOOPTIME 200
+// Rate in hz to check the bonds at
+#define LOOPTIME 5
 
 // The time in sec to wait for watched nodes
 #define INITTIME 5.0
@@ -31,6 +31,9 @@ int main(int argc, char **argv)
 {
    // Register this node with ROS, naming it "CORE_safety"
    ros::init(argc, argv, "iarc7_safety");
+   
+   // Print out that the node has started
+   ROS_INFO("node_monitor has started.");
 
    // Create a handle for this particular node, which is
    // responsible for handling all of the ROS communications
@@ -59,9 +62,6 @@ int main(int argc, char **argv)
    
    // Specify a time for the node connection to wait unit an error is thrown (sec)
    ros::Duration init_dur(INITTIME);
-   
-   // Print out that the node has started
-   ROS_INFO("node_monitor has started.");
 
    // Initialize bonds
    // Go through all the bonds to initialize them
@@ -69,18 +69,10 @@ int main(int argc, char **argv)
    {
       // Get a bond
       bond::Bond& bond = *bonds[i];
-
-      // Try to start the bond
+      ROS_INFO("iarc7_safety: Starting bond: %s", bond.getId().c_str());
+      
+      // Start the bond
       bond.start();
-
-      // Wait a certain amount of time for the bond to form
-      if (!bond.waitUntilFormed(init_dur))
-      {
-         // The bond didn't form,  post an error and stop creating bonds
-         // node_monitor should exit now which will break all the bonds it had
-         ROS_ERROR("node_monitor: BondId %s could not be formed", bond.getId().c_str());
-         return 0;
-      }
    }
    // End intializing bonds
 
@@ -96,13 +88,8 @@ int main(int argc, char **argv)
       {         
          // If the bond is broken stop looping
          if (bonds[i]->isBroken()){
-            break;
-         }
-         else
-         {
             // Set the current safe priority. Never go to a less safe priority than previously recorded.
-            int32_t safe_priority = i - 1;
-            lowest_safe_priority = safe_priority < lowest_safe_priority ? safe_priority : lowest_safe_priority;
+            lowest_safe_priority = i-1 < lowest_safe_priority ? i-1 : lowest_safe_priority;
          }
       }
 
@@ -111,7 +98,7 @@ int main(int argc, char **argv)
 
       // If the lowest_safe_priority is less than the number of safety bonds, we have
       // a safety event
-      if(lowest_safe_priority > -1)
+      if(lowest_safe_priority > -1 && lowest_safe_priority < num_bonds - 1)
       {
          // Publish the current highest level safe node
          // If a node hears its name it should respond with a safety response
@@ -119,7 +106,7 @@ int main(int argc, char **argv)
          safe_node_name.data = bonds[lowest_safe_priority]->getId();
          safety_publisher.publish(safe_node_name);
       }
-      else
+      else if(lowest_safe_priority < 0 )
       {
          // Fatal bond breakage
          // All nodes should try to exit at this point as they are not safe.

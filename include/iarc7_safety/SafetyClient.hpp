@@ -5,7 +5,7 @@
 //
 // SafetyClient
 //
-// Class implements an easy way to use the node_monitor to notify of safety events
+// Class implements an easy way to use the iarc7_safety to notify of safety events
 //
 ////////////////////////////////////////////////////////////////////////////
 
@@ -38,7 +38,12 @@ namespace Iarc7Safety
 
     private:
 
+        void waitUntilSafe();
+
         void processSafetyMessage(const std_msgs::String::ConstPtr& message);
+
+        void onBroken();
+        void onFormed();
 
         ros::Subscriber safety_subscriber_;
 
@@ -47,6 +52,7 @@ namespace Iarc7Safety
 
         bool fatal_active_{false};
         bool safety_active_{false};
+        bool formed_{false};
 
         const std::string fatal_message_{"FATAL"};
     };

@@ -2,7 +2,7 @@
 //
 // SafetyClient
 //
-// Class implements an easy way to use the node_monitor to notify of safety events
+// Class implements an easy way to use iarc7_safety to notify of safety events
 //
 ////////////////////////////////////////////////////////////////////////////
 
@@ -15,24 +15,36 @@ using namespace Iarc7Safety;
 
 SafetyClient::SafetyClient(ros::NodeHandle& nh, const std::string bond_id) :
 bond_id_(bond_id),
-bond_("bond_topic", bond_id)
+bond_("bond_topic", bond_id_, boost::bind(&SafetyClient::onBroken, this), boost::bind(&SafetyClient::onFormed, this))
 {
     safety_subscriber_ = nh.subscribe("safety", 100, &SafetyClient::processSafetyMessage, this);
 }
 
 bool SafetyClient::formBond()
 {
+    ROS_INFO("safety_client: trying to form bond %s", bond_.getId().c_str());
+
     // Try to start the bond
     bond_.start();
-    // Wait a certain amount of time for the bond to form (5 seconds)
-    if (!bond_.waitUntilFormed(ros::Duration(5.0))) 
-    {
-        // The bond didn't form,  post an error and stop creating bonds
-        // node_monitor should exit now which will break all the bonds it had
-        ROS_ERROR("BondId: %s could not be formed client side", bond_.getId().c_str());
-        return false;
-    }
+    waitUntilSafe();
+
     return true;
+}
+
+// This function is a workaround since Bond::waitUntilFormed doesn't work because it doesn't spin
+void SafetyClient::waitUntilSafe()
+{
+    while(ros::ok())
+    {
+        if(formed_)
+        {
+            break;
+        }
+
+        ros::spinOnce();
+
+        ros::Duration(0.1).sleep();
+    }
 }
 
 void SafetyClient::processSafetyMessage(const std_msgs::String::ConstPtr& message)
@@ -56,4 +68,16 @@ bool SafetyClient::isSafetyActive()
 bool SafetyClient::isFatalActive()
 {
     return fatal_active_;
+}
+
+void SafetyClient::onBroken()
+{
+    fatal_active_ = true;
+    safety_active_ = true;
+    formed_ = false;
+}
+
+void SafetyClient::onFormed()
+{
+    formed_ = true;
 }
