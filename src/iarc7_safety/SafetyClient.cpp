@@ -26,19 +26,23 @@ bool SafetyClient::formBond()
 
     // Try to start the bond
     bond_.start();
-    waitUntilSafe();
 
-    return true;
+    return waitUntilSafe();
 }
 
 // This function is a workaround since Bond::waitUntilFormed doesn't work because it doesn't spin
-void SafetyClient::waitUntilSafe()
+bool SafetyClient::waitUntilSafe()
 {
     while(ros::ok())
     {
+        if(broken_)
+        {
+            return false;
+        }
+
         if(formed_)
         {
-            break;
+            return true;
         }
 
         ros::spinOnce();
@@ -72,12 +76,15 @@ bool SafetyClient::isFatalActive()
 
 void SafetyClient::onBroken()
 {
+    broken_ = true;
+    formed_ = false;
+
     fatal_active_ = true;
     safety_active_ = true;
-    formed_ = false;
 }
 
 void SafetyClient::onFormed()
 {
+    broken_ = false;
     formed_ = true;
 }

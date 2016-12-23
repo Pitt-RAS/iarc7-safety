@@ -38,7 +38,7 @@ namespace Iarc7Safety
 
     private:
 
-        void waitUntilSafe();
+        bool waitUntilSafe();
 
         void processSafetyMessage(const std_msgs::String::ConstPtr& message);
 
@@ -52,7 +52,9 @@ namespace Iarc7Safety
 
         bool fatal_active_{false};
         bool safety_active_{false};
+        
         bool formed_{false};
+        bool broken_{false};
 
         const std::string fatal_message_{"FATAL"};
     };

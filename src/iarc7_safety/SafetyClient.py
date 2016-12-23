@@ -16,6 +16,7 @@ class SafetyClient:
     def __init__(self, bondId):
         self.bond = bondpy.Bond("bond_topic", bondId, self.on_broken, self.on_formed)
         self.formed = False
+        self.broken = False
         self.safetyActive = False
         self.fatalActive = False
         self.bondId = bondId
@@ -24,14 +25,15 @@ class SafetyClient:
     def form_bond(self):
         self.bond.start()
         
-        self.wait_until_safe()
-
-        return True
+        return self.wait_until_safe()
 
     def wait_until_safe(self):
         while not rospy.is_shutdown():
+            if self.broken:
+                return False
+
             if self.formed:
-                break
+                return True
             rospy.sleep(0.1)
 
     def process_safety_message(self, message):
@@ -50,11 +52,12 @@ class SafetyClient:
         return self.fatalActive
 
     def on_broken(self):
-        print "BROKEN"
-        self.formed = False;
-        self.safetyActive = True;
-        self.fatalActive = True;
+        self.broken = True
+        self.formed = False
+
+        self.safetyActive = True
+        self.fatalActive = True
 
     def on_formed(self):
-        print "FORMED"
-        self.formed = True;
+        self.broken = False
+        self.formed = True
