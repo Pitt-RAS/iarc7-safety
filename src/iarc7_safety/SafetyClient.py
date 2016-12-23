@@ -14,28 +14,28 @@ from std_msgs.msg import String
 
 class SafetyClient:
     def __init__(self, bondId):
-        self.bond = bondpy.Bond(bondId)
+        self.bond = bondpy.Bond("bond_topic", bondId)
         self.safetyActive = False
         self.fatalActive = False
         self.bondId = bondId
 
     def form_bond(self):
-        bond.start()
-        if(bond.wait_until_formed(rospy.Duration(5.0))):
+        self.bond.start()
+        if self.bond.wait_until_formed(rospy.Duration(5.0)) == False:
             return False
 
-        rospy.Subscriber("safety", String, processSafetyMessage)
+        rospy.Subscriber("safety", String, self.process_safety_message)
 
         return True
 
     def process_safety_message(self, message):
         
-        if(message.data == bondId):
-            safetyActive = True
+        if(message.data == self.bondId):
+            self.safetyActive = True
 
         if(message.data == "FATAL"):
-            fatalActive = True
-            safetyActive = True
+            self.fatalActive = True
+            self.safetyActive = True
 
     def is_safety_active(self):
         return self.safetyActive
