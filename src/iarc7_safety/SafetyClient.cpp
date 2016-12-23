@@ -13,14 +13,14 @@
 
 using namespace Iarc7Safety;
 
-SafetyClient::SafetyClient(std::string bond_id) :
+SafetyClient::SafetyClient(ros::NodeHandle& nh, const std::string bond_id) :
 bond_id_(bond_id),
 bond_("bond_topic", bond_id)
 {
-
+    safety_subscriber_ = nh.subscribe("safety", 100, &SafetyClient::processSafetyMessage, this);
 }
 
-bool SafetyClient::init()
+bool SafetyClient::formBond()
 {
     // Try to start the bond
     bond_.start();

@@ -20,7 +20,7 @@ namespace Iarc7Safety
     {
     public:
 
-        SafetyClient(const std::string bond_id);
+        SafetyClient(ros::NodeHandle& nh, const std::string bond_id);
 
         SafetyClient() = delete;
         ~SafetyClient() = default;
@@ -31,7 +31,7 @@ namespace Iarc7Safety
 
 
         // returns true on success
-        bool __attribute__((warn_unused_result)) init();
+        bool __attribute__((warn_unused_result)) formBond();
 
         bool isSafetyActive();
         bool isFatalActive();
@@ -39,6 +39,8 @@ namespace Iarc7Safety
     private:
 
         void processSafetyMessage(const std_msgs::String::ConstPtr& message);
+
+        ros::Subscriber safety_subscriber_;
 
         const std::string bond_id_;
         bond::Bond bond_;
