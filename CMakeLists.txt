@@ -135,14 +135,14 @@ target_link_libraries(iarc7_safety_safety_client
  )
 
 ## Declare a C++ executable
-add_executable(iarc7_safety_sim src/iarc7_safety_node.cpp src/SafetyBondsSimulator.cpp)
+add_executable(iarc7_safety src/SafetyMonitor.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(iarc7_safety_sim ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(iarc7_safety ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(iarc7_safety_sim
+target_link_libraries(iarc7_safety
    ${catkin_LIBRARIES}
  )
 

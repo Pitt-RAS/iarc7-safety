@@ -11,10 +11,10 @@
 // http://docs.ros.org/api/bondcpp/html/classbond_1_1Bond.html
 ////////////////////////////////////////////////////////////////////////////
 
+#include <deque>
+
 #include <ros/ros.h>
 #include <bondcpp/bond.h>
-
-#include "iarc7_safety/SafetyBonds.hpp"
 
 #include "std_msgs/String.h"
 
@@ -30,16 +30,29 @@
 int main(int argc, char **argv)
 {
    // Register this node with ROS, naming it "CORE_safety"
-   ros::init(argc, argv, "node_monitor");
+   ros::init(argc, argv, "iarc7_safety");
 
    // Create a handle for this particular node, which is
    // responsible for handling all of the ROS communications
-   ros::NodeHandle nHandle;
-   
+   ros::NodeHandle nh;
+   ros::NodeHandle param_nh ("iarc7_safety");
+
+   // Read in parameter and create the bond table
+   std::vector<std::string> bond_ids;
+   ROS_ASSERT_MSG(param_nh.getParam("bondIds", bond_ids), "iarc7_safety: Can't load bond id list from parameter server");
+
+   int32_t num_bonds = bond_ids.size();
+   std::vector<bond::Bond*> bonds;
+   for(std::string bond_id : bond_ids)
+   {
+      bond::Bond* bond = new bond::Bond("bond_topic", bond_id);
+      bonds.push_back(bond);
+   }
+
    // Create a publisher to advertise this node's presence.
    // This node should only publish in case of emergency, so queue length is 100
    // TODO : Change std_msgs::String to a custom type
-   ros::Publisher safety_publisher = nHandle.advertise<std_msgs::String>("safety", 100);
+   ros::Publisher safety_publisher = nh.advertise<std_msgs::String>("safety", 100);
    
    // Specify a time for the message loop to wait between each cycle (ms)
    ros::Rate loop_rate(LOOPTIME);
@@ -55,7 +68,7 @@ int main(int argc, char **argv)
    for(int32_t i = 0; i < num_bonds; i++)
    {
       // Get a bond
-      bond::Bond& bond = bonds[i];
+      bond::Bond& bond = *bonds[i];
 
       // Try to start the bond
       bond.start();
@@ -82,7 +95,7 @@ int main(int argc, char **argv)
       for(int32_t i = 0; i < num_bonds; i++)
       {         
          // If the bond is broken stop looping
-         if (bonds[i].isBroken()){
+         if (bonds[i]->isBroken()){
             break;
          }
          else
@@ -103,7 +116,7 @@ int main(int argc, char **argv)
          // Publish the current highest level safe node
          // If a node hears its name it should respond with a safety response
          std_msgs::String safe_node_name;
-         safe_node_name.data = bonds[lowest_safe_priority].getId();
+         safe_node_name.data = bonds[lowest_safe_priority]->getId();
          safety_publisher.publish(safe_node_name);
       }
       else
