@@ -41,18 +41,6 @@ int main(int argc, char **argv)
    ros::NodeHandle nh;
    ros::NodeHandle param_nh ("iarc7_safety");
 
-   // Read in parameter and create the bond table
-   std::vector<std::string> bond_ids;
-   ROS_ASSERT_MSG(param_nh.getParam("bondIds", bond_ids), "iarc7_safety: Can't load bond id list from parameter server");
-
-   int32_t num_bonds = bond_ids.size();
-   std::vector<bond::Bond*> bonds;
-   for(std::string bond_id : bond_ids)
-   {
-      bond::Bond* bond = new bond::Bond("bond_topic", bond_id);
-      bonds.push_back(bond);
-   }
-
    // Create a publisher to advertise this node's presence.
    // This node should only publish in case of emergency, so queue length is 100
    // TODO : Change std_msgs::String to a custom type
@@ -61,31 +49,36 @@ int main(int argc, char **argv)
    // Specify a time for the message loop to wait between each cycle (ms)
    ros::Rate loop_rate(kLooptime);
 
-   // Initialize bonds
-   // Go through all the bonds to initialize them
-   for(int32_t i = 0; i < num_bonds; i++)
+   // Read in parameter containing the bond table
+   std::vector<std::string> bond_ids;
+   ROS_ASSERT_MSG(param_nh.getParam("bondIds", bond_ids), "iarc7_safety: Can't load bond id list from parameter server");
+
+   // Initialize all the bonds   
+   std::vector<std::unique_ptr<bond::Bond>> bonds;
+   for(std::string bond_id : bond_ids)
    {
-      // Get a bond
-      bond::Bond& bond = *bonds[i];
-      ROS_INFO("iarc7_safety: Starting bond: %s", bond.getId().c_str());
-   
-      bond.setHeartbeatPeriod(kHeartbeatSec);
-      bond.setHeartbeatTimeout(kTimeoutSec);
-   
+      std::unique_ptr<bond::Bond> bond_ptr(new bond::Bond("bond_topic", bond_id));
+
+      ROS_INFO("iarc7_safety: Starting bond: %s", bond_ptr->getId().c_str());
+
+      // Set the heartbeatperiod and timeout to something much faster than the default
+      bond_ptr->setHeartbeatPeriod(kHeartbeatSec);
+      bond_ptr->setHeartbeatTimeout(kTimeoutSec);
+      
       // Start the bond
-      bond.start();
+      bond_ptr->start();
+
+      bonds.push_back(std::move(bond_ptr));
    }
-   // End intializing bonds
 
    // This is the lowest priority that is still safe. It should never be incremented.   
-   int32_t lowest_safe_priority{num_bonds - 1};
+   int32_t lowest_safe_priority{static_cast<int32_t>(bonds.size()) - 1};
 
    // Continuously loop the node program
    while(true)
    {
-      // Begin checking bonds
       // Go through every node
-      for(int32_t i = 0; i < num_bonds; i++)
+      for(int32_t i = 0; i < bonds.size(); i++)
       {         
          // If the bond is broken stop looping
          if (bonds[i]->isBroken()){
@@ -96,41 +89,41 @@ int main(int argc, char **argv)
          }
       }
 
-      ROS_ASSERT_MSG(lowest_safe_priority < num_bonds || lowest_safe_priority > -2,
+      // Make sure the lowest_safe_priority is in a legal range
+      ROS_ASSERT_MSG(lowest_safe_priority < bonds.size() || lowest_safe_priority > -2,
                      "node_monitor: Lowest safe priority is outside of possible range");
 
-      // If the lowest_safe_priority is less than the number of safety bonds, we have
-      // a safety event
-      if(lowest_safe_priority > -1 && lowest_safe_priority < num_bonds - 1)
+      // If lowest_safe_priority is not fatal and not the lowest priority
+      // we have a safety event, publish the name of the node to take safety control 
+      if(lowest_safe_priority > -1 && lowest_safe_priority < bonds.size() - 1)
       {
          // Publish the current highest level safe node
-         // If a node hears its name it should respond with a safety response
+         // If a node hears its name it should take appropriate action
          std_msgs::String safe_node_name;
          safe_node_name.data = bonds[lowest_safe_priority]->getId();
          safety_publisher.publish(safe_node_name);
       }
+      // Check for a fatal event
       else if(lowest_safe_priority < 0 )
       {
-         // Fatal bond breakage
          // All nodes should try to exit at this point as they are not safe.
          std_msgs::String safe_node_name;
          safe_node_name.data = std::string("FATAL");
          safety_publisher.publish(safe_node_name);
       }
-      // End checking bonds
 
       // Ensure that the node hasn't been shut down.
       if (!ros::ok()) {
-         // If shutdown the bonds will break and any listening nodes will default to a fatal state.
+         // If node is shutdown the bonds will break and 
+         // any listening nodes will default to a fatal state.
          break;
       }
       
       // Give callback to subscribed events
       ros::spinOnce();
       
-      // Sleep for a bit 
       loop_rate.sleep();
-   } // End main loop
+   }
 
-    return 0;
+   return 0;
 }
