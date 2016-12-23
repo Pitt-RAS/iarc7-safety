@@ -18,11 +18,12 @@
 
 #include "std_msgs/String.h"
 
-// Rate in hz to check the bonds at
-#define LOOPTIME 5
+// Heartbeat rate for bonds
+const float kHeartbeatSec = 0.2;
+const float kTimeoutSec = 0.5;
 
-// The time in sec to wait for watched nodes
-#define INITTIME 5.0
+// Rate in hz to check the bonds. Make it loop three times faster than the heartbeats
+const float kLooptime = 1.0/(kHeartbeatSec/3.0);
 
 /**
  * Starts a new Safety Node
@@ -58,10 +59,7 @@ int main(int argc, char **argv)
    ros::Publisher safety_publisher = nh.advertise<std_msgs::String>("safety", 100);
    
    // Specify a time for the message loop to wait between each cycle (ms)
-   ros::Rate loop_rate(LOOPTIME);
-   
-   // Specify a time for the node connection to wait unit an error is thrown (sec)
-   ros::Duration init_dur(INITTIME);
+   ros::Rate loop_rate(kLooptime);
 
    // Initialize bonds
    // Go through all the bonds to initialize them
@@ -70,7 +68,10 @@ int main(int argc, char **argv)
       // Get a bond
       bond::Bond& bond = *bonds[i];
       ROS_INFO("iarc7_safety: Starting bond: %s", bond.getId().c_str());
-      
+   
+      bond.setHeartbeatPeriod(kHeartbeatSec);
+      bond.setHeartbeatTimeout(kTimeoutSec);
+   
       // Start the bond
       bond.start();
    }
@@ -90,6 +91,8 @@ int main(int argc, char **argv)
          if (bonds[i]->isBroken()){
             // Set the current safe priority. Never go to a less safe priority than previously recorded.
             lowest_safe_priority = i-1 < lowest_safe_priority ? i-1 : lowest_safe_priority;
+            ROS_ERROR("iarc7_safety: safety event: current: priority: %d bondId: %s",
+                      lowest_safe_priority, bonds[lowest_safe_priority]->getId().c_str());
          }
       }
 

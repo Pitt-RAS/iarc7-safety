@@ -18,6 +18,8 @@ bond_id_(bond_id),
 bond_("bond_topic", bond_id_, boost::bind(&SafetyClient::onBroken, this), boost::bind(&SafetyClient::onFormed, this))
 {
     safety_subscriber_ = nh.subscribe("safety", 100, &SafetyClient::processSafetyMessage, this);
+    bond_.setHeartbeatPeriod(0.2);
+    bond_.setHeartbeatTimeout(0.5);
 }
 
 bool SafetyClient::formBond()
