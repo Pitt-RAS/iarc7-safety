@@ -11,8 +11,6 @@
 // http://docs.ros.org/api/bondcpp/html/classbond_1_1Bond.html
 ////////////////////////////////////////////////////////////////////////////
 
-#include <deque>
-
 #include <ros/ros.h>
 #include <bondcpp/bond.h>
 
