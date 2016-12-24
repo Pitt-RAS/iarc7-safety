@@ -80,7 +80,7 @@ int main(int argc, char **argv)
    while(true)
    {
       // Go through every node
-      for(int32_t i = 0; i < bonds.size(); i++)
+      for(int32_t i = 0; i < static_cast<int32_t>(bonds.size()); i++)
       {         
          // If the bond is broken stop looping
          if (bonds[i]->isBroken()){
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
          // any listening nodes will default to a fatal state.
          break;
       }
-      
+
       // Give callback to subscribed events
       ros::spinOnce();
       

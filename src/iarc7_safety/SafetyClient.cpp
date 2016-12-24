@@ -54,6 +54,9 @@ bool SafetyClient::waitUntilSafe()
 
         ros::Duration(0.1).sleep();
     }
+
+    // This can only happen if ros::ok() was false which means the bond was not formed
+    return false;
 }
 
 void SafetyClient::processSafetyMessage(const std_msgs::String::ConstPtr& message)
