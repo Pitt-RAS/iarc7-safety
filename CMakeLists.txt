@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(iarc7_safety)
 
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Werror ${CMAKE_CXX_FLAGS}")
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  iarc7_msgs
+  roscpp
+  rospy
+  message_generation
+  bondcpp
+  bondpy
+  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -15,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
 ## See http://ros.org/doc/api/catkin/html/user_guide/setup_dot_py.html
-# catkin_python_setup()
+catkin_python_setup()
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -63,10 +70,9 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   iarc7_msgs
-# )
+#generate_messages(
+#    DEPENDENCIES
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -98,9 +104,9 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES iarc7_safety
-#  CATKIN_DEPENDS iarc7_msgs
+  INCLUDE_DIRS include
+  LIBRARIES iarc7_safety
+#  CATKIN_DEPENDS iarc7_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -112,30 +118,35 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  include ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(iarc7_safety
-#   src/${PROJECT_NAME}/iarc7_safety.cpp
-# )
+add_library(iarc7_safety
+  src/${PROJECT_NAME}/SafetyClient.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(iarc7_safety ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(iarc7_safety ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(iarc7_safety
+   ${catkin_LIBRARIES}
+ )
 
 ## Declare a C++ executable
-# add_executable(iarc7_safety_node src/iarc7_safety_node.cpp)
+add_executable(iarc7_safety_node src/SafetyMonitor.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(iarc7_safety_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(iarc7_safety_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(iarc7_safety_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(iarc7_safety_node
+   ${catkin_LIBRARIES}
+ )
 
 #############
 ## Install ##
