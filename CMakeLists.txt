@@ -103,7 +103,7 @@ catkin_python_setup()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES iarc7_safety_safety_client
+  LIBRARIES iarc7_safety
 #  CATKIN_DEPENDS iarc7_msgs message_runtime
 #  DEPENDS system_lib
 )
@@ -120,29 +120,29 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(iarc7_safety_safety_client
+add_library(iarc7_safety
   src/${PROJECT_NAME}/SafetyClient.cpp
 )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_dependencies(iarc7_safety_safety_client ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-target_link_libraries(iarc7_safety_safety_client
-   ${catkin_LIBRARIES}
- )
-
-## Declare a C++ executable
-add_executable(iarc7_safety src/SafetyMonitor.cpp)
-
-## Add cmake target dependencies of the executable
-## same as for the library above
 add_dependencies(iarc7_safety ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(iarc7_safety
+   ${catkin_LIBRARIES}
+ )
+
+## Declare a C++ executable
+add_executable(iarc7_safety_node src/SafetyMonitor.cpp)
+
+## Add cmake target dependencies of the executable
+## same as for the library above
+add_dependencies(iarc7_safety_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(iarc7_safety_node
    ${catkin_LIBRARIES}
  )
 
