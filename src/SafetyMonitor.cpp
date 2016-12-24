@@ -40,7 +40,7 @@ int main(int argc, char **argv)
    // Create a handle for this particular node, which is
    // responsible for handling all of the ROS communications
    ros::NodeHandle nh;
-   ros::NodeHandle param_nh ("iarc7_safety");
+   ros::NodeHandle param_nh ("iarc7_safety_node");
 
    // Create a publisher to advertise this node's presence.
    // This node should only publish in case of emergency, so queue length is 100
@@ -53,6 +53,7 @@ int main(int argc, char **argv)
    // Read in parameter containing the bond table
    std::vector<std::string> bond_ids;
    ROS_ASSERT_MSG(param_nh.getParam("bondIds", bond_ids), "iarc7_safety: Can't load bond id list from parameter server");
+   ROS_ASSERT_MSG(bond_ids.size() > 0, "iarc7_safety: bondId list is empty");
 
    // Initialize all the bonds   
    std::vector<std::unique_ptr<bond::Bond>> bonds;
@@ -85,24 +86,25 @@ int main(int argc, char **argv)
          if (bonds[i]->isBroken()){
             // Set the current safe priority. Never go to a less safe priority than previously recorded.
             lowest_safe_priority = std::min(i-1, lowest_safe_priority);
-            ROS_ERROR("iarc7_safety: safety event: current: priority: %d bondId: %s",
-                      lowest_safe_priority, bonds[lowest_safe_priority]->getId().c_str());
          }
       }
 
       // Make sure the lowest_safe_priority is in a legal range
-      ROS_ASSERT_MSG(lowest_safe_priority > -2 && lowest_safe_priority < bonds.size(),
-                     "node_monitor: Lowest safe priority is outside of possible range");
+      ROS_ASSERT_MSG((lowest_safe_priority > -2) && (lowest_safe_priority < static_cast<int32_t>(bonds.size())),
+                     "node_monitor: Lowest safe priority is outside of possible range, value: %d", lowest_safe_priority);
 
       // If lowest_safe_priority is not fatal and not the lowest priority
       // we have a safety event, publish the name of the node to take safety control 
-      if(lowest_safe_priority > -1 && lowest_safe_priority < bonds.size() - 1)
+      if(lowest_safe_priority > -1 && lowest_safe_priority < static_cast<int32_t>(bonds.size()) - 1)
       {
          // Publish the current highest level safe node
          // If a node hears its name it should take appropriate action
          std_msgs::String safe_node_name;
          safe_node_name.data = bonds[lowest_safe_priority]->getId();
          safety_publisher.publish(safe_node_name);
+
+         ROS_ERROR("iarc7_safety: safety event: current: priority: %d bondId: %s",
+         lowest_safe_priority, bonds[lowest_safe_priority]->getId().c_str());
       }
       // Check for a fatal event
       else if(lowest_safe_priority < 0 )
@@ -111,6 +113,8 @@ int main(int argc, char **argv)
          std_msgs::String safe_node_name;
          safe_node_name.data = std::string("FATAL");
          safety_publisher.publish(safe_node_name);
+
+         ROS_ERROR("iarc7_safety: FATAL event: current: priority: %d", lowest_safe_priority);
       }
 
       // Ensure that the node hasn't been shut down.

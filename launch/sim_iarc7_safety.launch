@@ -1,5 +1,0 @@
-<launch>
-    <node name="iarc7_safety" pkg="iarc7_safety" type="iarc7_safety" output="screen">
-        <rosparam command="load" file="$(find iarc7_safety)/param/sim_iarc7_safety.yaml" />
-    </node>
-</launch>
