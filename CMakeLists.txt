@@ -161,7 +161,7 @@ target_link_libraries(iarc7_safety
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS iarc7_fc_comms iarc7_fc_comms_node
+# install(TARGETS iarc7_safety iarc7_safety_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -186,7 +186,7 @@ target_link_libraries(iarc7_safety
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_iarc7_fc_comms.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_iarc7_safety.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

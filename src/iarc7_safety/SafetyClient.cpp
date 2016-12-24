@@ -6,6 +6,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+// System header
+#include <functional>
+
 // Associated header
 #include "iarc7_safety/SafetyClient.hpp"
 
@@ -15,7 +18,7 @@ using namespace Iarc7Safety;
 
 SafetyClient::SafetyClient(ros::NodeHandle& nh, const std::string bond_id) :
 bond_id_(bond_id),
-bond_("bond_topic", bond_id_, boost::bind(&SafetyClient::onBroken, this), boost::bind(&SafetyClient::onFormed, this))
+bond_("bond_topic", bond_id_, std::bind(&SafetyClient::onBroken, this), std::bind(&SafetyClient::onFormed, this))
 {
     safety_subscriber_ = nh.subscribe("safety", 100, &SafetyClient::processSafetyMessage, this);
     bond_.setHeartbeatPeriod(0.2);
