@@ -145,6 +145,7 @@ add_dependencies(iarc7_safety_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(iarc7_safety_node
+   iarc7_safety
    ${catkin_LIBRARIES}
  )
 

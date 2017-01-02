@@ -96,3 +96,8 @@ void SafetyClient::onFormed()
     broken_ = false;
     formed_ = true;
 }
+
+const std::string SafetyClient::getId() const
+{
+    return bond_id_;
+}

@@ -36,6 +36,8 @@ public:
     bool isSafetyActive();
     bool isFatalActive();
 
+    const std::string getId() const;
+
 private:
 
     bool waitUntilSafe();
