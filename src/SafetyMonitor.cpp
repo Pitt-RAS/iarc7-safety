@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             ROS_ERROR("iarc7_safety: Safety status read when checking bond: %s", bonds[i]->getId().c_str());
          }
 
-         // If fatal is on the bond is broken
+         // If fatal is active the node can no longer have control. Move to priority to next available priority.
          if (bonds[i]->isFatalActive())
          {
             // Make the lowest safe priority one lower, 
