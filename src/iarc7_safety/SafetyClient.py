@@ -65,3 +65,6 @@ class SafetyClient:
     def on_formed(self):
         self.broken = False
         self.formed = True
+
+    def get_id(self):
+        return self.bondId

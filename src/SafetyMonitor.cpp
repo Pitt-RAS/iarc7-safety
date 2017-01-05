@@ -13,6 +13,8 @@
 
 #include <ros/ros.h>
 
+#include "iarc7_safety/SafetyClient.hpp"
+
 #include <bondcpp/bond.h>
 
 #include "std_msgs/String.h"
@@ -55,37 +57,57 @@ int main(int argc, char **argv)
    ROS_ASSERT_MSG(param_nh.getParam("bondIds", bond_ids), "iarc7_safety: Can't load bond id list from parameter server");
    ROS_ASSERT_MSG(bond_ids.size() > 0, "iarc7_safety: bondId list is empty");
 
+   // This is the lowest priority that is still safe. It should never be incremented.   
+   int32_t lowest_safe_priority{static_cast<int32_t>(bond_ids.size()) - 1};
+
    // Initialize all the bonds   
-   std::vector<std::unique_ptr<bond::Bond>> bonds;
+   std::vector<std::unique_ptr<Iarc7Safety::SafetyClient>> bonds;
    for(std::string bond_id : bond_ids)
    {
-      std::unique_ptr<bond::Bond> bond_ptr(new bond::Bond("bond_topic", bond_id));
+      ROS_INFO("iarc7_safety: Starting bond: %s", bond_id.c_str());
 
-      ROS_INFO("iarc7_safety: Starting bond: %s", bond_ptr->getId().c_str());
+      std::unique_ptr<Iarc7Safety::SafetyClient> bond_ptr(new Iarc7Safety::SafetyClient(nh, bond_id));
 
-      // Set the heartbeatperiod and timeout to something much faster than the default
-      bond_ptr->setHeartbeatPeriod(kHeartbeatSec);
-      bond_ptr->setHeartbeatTimeout(kTimeoutSec);
-      
       // Start the bond
-      bond_ptr->start();
+      bool success = bond_ptr->formBond();
+      if(success)
+      {
+         ROS_INFO("iarc7_safety: Made bond: %s", bond_ptr->getId().c_str());
+      }
+      else
+      {
+         ROS_ERROR("iarc7_safety: Could not make bond: %s", bond_ptr->getId().c_str());
+         
+         // Stop making bonds and immediately set the lowest_safe_priority to fatal.
+         // The program did not start correctly.
+         lowest_safe_priority = -1;
+         bonds.push_back(std::move(bond_ptr));
+         break;
+      }
 
       bonds.push_back(std::move(bond_ptr));
    }
-
-   // This is the lowest priority that is still safe. It should never be incremented.   
-   int32_t lowest_safe_priority{static_cast<int32_t>(bonds.size()) - 1};
 
    // Continuously loop the node program
    while(true)
    {
       // Go through every node
       for(int32_t i = 0; i < static_cast<int32_t>(bonds.size()); i++)
-      {         
-         // If the bond is broken stop looping
-         if (bonds[i]->isBroken()){
-            // Set the current safe priority. Never go to a less safe priority than previously recorded.
+      {
+         // If the safety is on just make sure our priority is as low as that ones
+         if (bonds[i]->isSafetyActive())
+         {
+            // Set lowest safe priority accordingly
+            lowest_safe_priority = std::min(i, lowest_safe_priority);
+            ROS_ERROR("iarc7_safety: Safety status read when checking bond: %s", bonds[i]->getId().c_str());
+         }
+
+         // If fatal is active the node can no longer have control. Move to priority to next available priority.
+         if (bonds[i]->isFatalActive())
+         {
+            // Make the lowest safe priority one lower, 
             lowest_safe_priority = std::min(i-1, lowest_safe_priority);
+            ROS_ERROR("iarc7_safety: Fatal status read when checking bond: %s", bonds[i]->getId().c_str());
          }
       }
 
