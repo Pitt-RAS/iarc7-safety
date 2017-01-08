@@ -23,6 +23,7 @@ bond_("bond_topic", bond_id_, std::bind(&SafetyClient::onBroken, this), std::bin
     safety_subscriber_ = nh.subscribe("safety", 100, &SafetyClient::processSafetyMessage, this);
     bond_.setHeartbeatPeriod(0.2);
     bond_.setHeartbeatTimeout(0.5);
+    bond_.setConnectTimeout(60.0);
 }
 
 bool SafetyClient::formBond()

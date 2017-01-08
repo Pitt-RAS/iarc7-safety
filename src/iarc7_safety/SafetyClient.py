@@ -23,6 +23,7 @@ class SafetyClient:
 
         self.bond.set_heartbeat_period(0.2)
         self.bond.set_heartbeat_timeout(0.5)
+        self.bond.set_connect_timeout(60.0)
 
         rospy.Subscriber("safety", String, self.process_safety_message)
 
