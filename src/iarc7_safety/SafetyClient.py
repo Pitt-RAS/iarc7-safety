@@ -8,6 +8,7 @@
 #
 ###########################################################################
 
+import threading
 import rospy
 from bondpy import bondpy
 from std_msgs.msg import String
@@ -24,6 +25,8 @@ class SafetyClient:
         self.bond.set_heartbeat_period(0.2)
         self.bond.set_heartbeat_timeout(0.5)
         self.bond.set_connect_timeout(60.0)
+        
+        self._lock = threading.RLock()
 
         rospy.Subscriber("safety", String, self.process_safety_message)
 
@@ -42,13 +45,13 @@ class SafetyClient:
             rospy.sleep(0.1)
 
     def process_safety_message(self, message):
-        
-        if(message.data == self.bondId):
-            self.safetyActive = True
+        with self._lock:
+            if(message.data == self.bondId):
+                self.safetyActive = True
 
-        if(message.data == "FATAL"):
-            self.fatalActive = True
-            self.safetyActive = True
+            if(message.data == "FATAL"):
+                self.fatalActive = True
+                self.safetyActive = True
 
     def is_safety_active(self):
         return self.safetyActive
@@ -57,15 +60,17 @@ class SafetyClient:
         return self.fatalActive
 
     def on_broken(self):
-        self.broken = True
-        self.formed = False
+        with self._lock:
+            self.broken = True
+            self.formed = False
 
-        self.safetyActive = True
-        self.fatalActive = True
+            self.safetyActive = True
+            self.fatalActive = True
 
     def on_formed(self):
-        self.broken = False
-        self.formed = True
+        with self._lock:
+            self.broken = False
+            self.formed = True
 
     def get_id(self):
         return self.bondId
