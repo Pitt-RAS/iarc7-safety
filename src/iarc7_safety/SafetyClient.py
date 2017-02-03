@@ -15,62 +15,65 @@ from std_msgs.msg import String
 
 class SafetyClient:
     def __init__(self, bondId):
-        self.bond = bondpy.Bond("bond_topic", bondId, self.on_broken, self.on_formed)
-        self.formed = False
-        self.broken = False
-        self.safetyActive = False
-        self.fatalActive = False
-        self.bondId = bondId
+        self._bond = bondpy.Bond("bond_topic", bondId, self._on_broken, self._on_formed)
+        self._formed = False
+        self._broken = False
+        self._safetyActive = False
+        self._fatalActive = False
+        self._bondId = bondId
 
-        self.bond.set_heartbeat_period(0.2)
-        self.bond.set_heartbeat_timeout(0.5)
-        self.bond.set_connect_timeout(60.0)
+        self._bond.set_heartbeat_period(0.2)
+        self._bond.set_heartbeat_timeout(0.5)
+        self._bond.set_connect_timeout(60.0)
         
         self._lock = threading.RLock()
 
-        rospy.Subscriber("safety", String, self.process_safety_message)
+        rospy.Subscriber("safety", String, self._process_safety_message)
 
     def form_bond(self):
-        self.bond.start()
+        self._bond.start()
         
         return self.wait_until_safe()
 
     def wait_until_safe(self):
         while not rospy.is_shutdown():
-            if self.broken:
+            if self._broken:
                 return False
 
-            if self.formed:
+            if self._formed:
                 return True
             rospy.sleep(0.1)
 
-    def process_safety_message(self, message):
+    # Private method
+    def _process_safety_message(self, message):
         with self._lock:
-            if(message.data == self.bondId):
-                self.safetyActive = True
+            if(message.data == self._bondId):
+                self._safetyActive = True
 
             if(message.data == "FATAL"):
-                self.fatalActive = True
-                self.safetyActive = True
+                self._fatalActive = True
+                self._safetyActive = True
 
     def is_safety_active(self):
-        return self.safetyActive
+        return self._safetyActive
 
     def is_fatal_active(self):
-        return self.fatalActive
+        return self._fatalActive
 
-    def on_broken(self):
+    # Private method
+    def _on_broken(self):
         with self._lock:
-            self.broken = True
-            self.formed = False
+            self._broken = True
+            self._formed = False
 
-            self.safetyActive = True
-            self.fatalActive = True
+            self._safetyActive = True
+            self._fatalActive = True
 
-    def on_formed(self):
+    # Private method
+    def _on_formed(self):
         with self._lock:
-            self.broken = False
-            self.formed = True
+            self._broken = False
+            self._formed = True
 
     def get_id(self):
-        return self.bondId
+        return self._bondId
