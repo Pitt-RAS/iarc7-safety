@@ -23,7 +23,7 @@ class SafetyClient:
         self._bondId = bondId
 
         self._bond.set_heartbeat_period(0.2)
-        self._bond.set_heartbeat_timeout(0.5)
+        self._bond.set_heartbeat_timeout(1.0)
         self._bond.set_connect_timeout(60.0)
         
         self._lock = threading.RLock()
