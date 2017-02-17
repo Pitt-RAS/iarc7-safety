@@ -59,6 +59,7 @@ int main(int argc, char **argv)
 
    // This is the lowest priority that is still safe. It should never be incremented.   
    int32_t lowest_safe_priority{static_cast<int32_t>(bond_ids.size()) - 1};
+   int32_t last_lowest_safe_priority{lowest_safe_priority};
 
    // Initialize all the bonds   
    std::vector<std::unique_ptr<Iarc7Safety::SafetyClient>> bonds;
@@ -99,7 +100,7 @@ int main(int argc, char **argv)
          {
             // Set lowest safe priority accordingly
             lowest_safe_priority = std::min(i, lowest_safe_priority);
-            ROS_ERROR("iarc7_safety: Safety status read when checking bond: %s", bonds[i]->getId().c_str());
+            ROS_ERROR_COND(lowest_safe_priority < last_lowest_safe_priority, "iarc7_safety: Safety status read when checking bond: %s", bonds[i]->getId().c_str());
          }
 
          // If fatal is active the node can no longer have control. Move to priority to next available priority.
@@ -107,7 +108,7 @@ int main(int argc, char **argv)
          {
             // Make the lowest safe priority one lower, 
             lowest_safe_priority = std::min(i-1, lowest_safe_priority);
-            ROS_ERROR("iarc7_safety: Fatal status read when checking bond: %s", bonds[i]->getId().c_str());
+            ROS_ERROR_COND(lowest_safe_priority < last_lowest_safe_priority, "iarc7_safety: Fatal status read when checking bond: %s", bonds[i]->getId().c_str());
          }
       }
 
@@ -125,7 +126,7 @@ int main(int argc, char **argv)
          safe_node_name.data = bonds[lowest_safe_priority]->getId();
          safety_publisher.publish(safe_node_name);
 
-         ROS_ERROR("iarc7_safety: safety event: current: priority: %d bondId: %s",
+         ROS_ERROR_COND(lowest_safe_priority < last_lowest_safe_priority, "iarc7_safety: safety event: current: priority: %d bondId: %s",
          lowest_safe_priority, bonds[lowest_safe_priority]->getId().c_str());
       }
       // Check for a fatal event
@@ -136,7 +137,7 @@ int main(int argc, char **argv)
          safe_node_name.data = std::string("FATAL");
          safety_publisher.publish(safe_node_name);
 
-         ROS_ERROR("iarc7_safety: FATAL event: current: priority: %d", lowest_safe_priority);
+         ROS_ERROR_COND(lowest_safe_priority < last_lowest_safe_priority, "iarc7_safety: FATAL event: current: priority: %d", lowest_safe_priority);
       }
 
       // Ensure that the node hasn't been shut down.
@@ -145,6 +146,8 @@ int main(int argc, char **argv)
          // any listening nodes will default to a fatal state.
          break;
       }
+
+      last_lowest_safe_priority = lowest_safe_priority;
 
       // Give callback to subscribed events
       ros::spinOnce();
