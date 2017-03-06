@@ -45,6 +45,8 @@ int main(int argc, char **argv)
    // responsible for handling all of the ROS communications
    ros::NodeHandle nh;
    ros::NodeHandle private_nh ("~");
+   ros::NodeHandle bond_names_nh (private_nh.param("bond_id_namespace",
+                                                   std::string("safety_bonds")));
 
    // Create a publisher to advertise this node's presence.
    // This node should only publish in case of emergency, so queue length is 100
@@ -55,21 +57,18 @@ int main(int argc, char **argv)
    ros::Rate loop_rate(kLoopFrequencyHz);
 
    // Read in parameter containing the bond table
-   std::vector<std::string> bond_ids;
-
-   ros::NodeHandle bond_names_nh (private_nh.param("bond_id_namespace",
-                                                   std::string("safety_bonds")));
+   std::vector<std::string> param_names;
    ROS_ASSERT_MSG(
-           bond_names_nh.getParamNames(bond_ids),
-           "iarc7_safety: Can't load bond id list from parameter server");
+           nh.getParamNames(param_names),
+           "iarc7_safety: Can't load parameter list from parameter server");
 
    std::vector<std::pair<std::string, int>> prioritized_bond_ids;
    std::string resolved_bond_namespace = bond_names_nh.getNamespace();
-   for (const std::string& bond_id : bond_ids) {
-       if (bond_id.substr(0, resolved_bond_namespace.size())
+   for (const std::string& param_name : param_names) {
+       if (param_name.substr(0, resolved_bond_namespace.size())
                == resolved_bond_namespace) {
-           prioritized_bond_ids.emplace_back(bond_id,
-                                             bond_names_nh.param(bond_id, -1));
+           prioritized_bond_ids.emplace_back(param_name,
+                                             bond_names_nh.param(param_name, -1));
        }
    }
 
@@ -99,7 +98,7 @@ int main(int argc, char **argv)
        ROS_ASSERT_MSG(false, "Two bonds requested with same priority");
    }
 
-   bond_ids.clear();
+   std::vector<std::string> bond_ids;
    for (const auto& p : prioritized_bond_ids) {
        bond_ids.push_back(p.first.substr(resolved_bond_namespace.size() + 1));
    }
