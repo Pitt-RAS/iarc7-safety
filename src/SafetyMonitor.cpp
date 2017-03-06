@@ -11,7 +11,9 @@
 // http://docs.ros.org/api/bondcpp/html/classbond_1_1Bond.html
 ////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
 #include <ros/ros.h>
+#include <vector>
 
 #include "iarc7_safety/SafetyClient.hpp"
 
@@ -42,19 +44,66 @@ int main(int argc, char **argv)
    // Create a handle for this particular node, which is
    // responsible for handling all of the ROS communications
    ros::NodeHandle nh;
-   ros::NodeHandle param_nh ("iarc7_safety_node");
+   ros::NodeHandle private_nh ("~");
 
    // Create a publisher to advertise this node's presence.
    // This node should only publish in case of emergency, so queue length is 100
    // TODO : Change std_msgs::String to a custom type
    ros::Publisher safety_publisher = nh.advertise<std_msgs::String>("safety", 100);
-   
+
    // Specify a time for the message loop to wait between each cycle (ms)
    ros::Rate loop_rate(kLoopFrequencyHz);
 
    // Read in parameter containing the bond table
    std::vector<std::string> bond_ids;
-   ROS_ASSERT_MSG(param_nh.getParam("bondIds", bond_ids), "iarc7_safety: Can't load bond id list from parameter server");
+
+   ros::NodeHandle bond_names_nh (private_nh.param("bond_id_namespace",
+                                                   std::string("safety_bonds")));
+   ROS_ASSERT_MSG(
+           bond_names_nh.getParamNames(bond_ids),
+           "iarc7_safety: Can't load bond id list from parameter server");
+
+   std::vector<std::pair<std::string, int>> prioritized_bond_ids;
+   std::string resolved_bond_namespace = bond_names_nh.getNamespace();
+   for (const std::string& bond_id : bond_ids) {
+       if (bond_id.substr(0, resolved_bond_namespace.size())
+               == resolved_bond_namespace) {
+           prioritized_bond_ids.emplace_back(bond_id,
+                                             bond_names_nh.param(bond_id, -1));
+       }
+   }
+
+   std::ostringstream bond_stream;
+   bond_stream << "Bonds found: ";
+   for (const auto& p : prioritized_bond_ids) {
+       bond_stream << p.first << " " << p.second << ", ";
+   }
+   ROS_INFO_STREAM(bond_stream.str());
+
+   std::sort(prioritized_bond_ids.begin(),
+             prioritized_bond_ids.end(),
+             [](const auto& p1, const auto& p2) -> bool {
+                 return p1.second < p2.second;
+             });
+
+   if (!prioritized_bond_ids.empty()
+           && prioritized_bond_ids.front().second <= 0) {
+       ROS_ASSERT_MSG(false, "Bond requested with invalid priority");
+   }
+
+   if (std::adjacent_find(prioritized_bond_ids.begin(),
+                          prioritized_bond_ids.end(),
+                          [](const auto& p1, const auto& p2) -> bool {
+                              return p1.second == p2.second;
+                          }) != prioritized_bond_ids.end()) {
+       ROS_ASSERT_MSG(false, "Two bonds requested with same priority");
+   }
+
+   bond_ids.clear();
+   for (const auto& p : prioritized_bond_ids) {
+       bond_ids.push_back(p.first.substr(resolved_bond_namespace.size() + 1));
+   }
+
    ROS_ASSERT_MSG(bond_ids.size() > 0, "iarc7_safety: bondId list is empty");
 
    // This is the lowest priority that is still safe. It should never be incremented.   
