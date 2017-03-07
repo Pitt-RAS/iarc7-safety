@@ -1,6 +1,7 @@
 <launch>
-    <arg name="bondIds" default="[]"/>
+    <arg name="bond_id_namespace" default="safety_bonds" />
+
     <node name="iarc7_safety_node" pkg="iarc7_safety" type="iarc7_safety_node">
-        <rosparam param="bondIds" subst_value="True">$(arg bondIds)</rosparam>
+        <param name="bond_id_namespace" value="$(arg bond_id_namespace)" />
     </node>
 </launch>
