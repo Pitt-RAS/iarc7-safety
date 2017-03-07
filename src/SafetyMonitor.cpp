@@ -12,6 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
+#include <regex>
 #include <ros/ros.h>
 #include <vector>
 
@@ -56,19 +57,32 @@ int main(int argc, char **argv)
    // Specify a time for the message loop to wait between each cycle (ms)
    ros::Rate loop_rate(kLoopFrequencyHz);
 
-   // Read in parameter containing the bond table
-   std::vector<std::string> param_names;
-   ROS_ASSERT_MSG(
-           nh.getParamNames(param_names),
-           "iarc7_safety: Can't load parameter list from parameter server");
-
+   // Read in all the bonds and their properties from the parameter server
    std::vector<std::pair<std::string, int>> prioritized_bond_ids;
    std::string resolved_bond_namespace = bond_names_nh.getNamespace();
+
+   std::vector<std::string> param_names;
+   ROS_ASSERT_MSG(nh.getParamNames(param_names),
+                  "Can't load parameter list from parameter server");
+
+   // for all parameters on the server:
    for (const std::string& param_name : param_names) {
-       if (param_name.substr(0, resolved_bond_namespace.size())
-               == resolved_bond_namespace) {
-           prioritized_bond_ids.emplace_back(param_name,
-                                             bond_names_nh.param(param_name, -1));
+       std::smatch match_results;
+       // if this parameter looks like /bond_ns/bond_name/form_bond:
+       if (std::regex_match(param_name,
+                            match_results,
+                            std::regex(resolved_bond_namespace
+                                     + "/([[:alnum:]_]+)/form_bond"))) {
+           // if the parameter is true:
+           if (bond_names_nh.param(param_name, false)) {
+               // add this bond and its priority to the list
+               std::string bond_full_name = resolved_bond_namespace
+                                          + "/"
+                                          + std::string(match_results[1]);
+               prioritized_bond_ids.emplace_back(
+                       match_results[1],
+                       bond_names_nh.param(bond_full_name + "/priority", -1));
+           }
        }
    }
 
@@ -100,7 +114,7 @@ int main(int argc, char **argv)
 
    std::vector<std::string> bond_ids;
    for (const auto& p : prioritized_bond_ids) {
-       bond_ids.push_back(p.first.substr(resolved_bond_namespace.size() + 1));
+       bond_ids.push_back(p.first);
    }
 
    ROS_ASSERT_MSG(bond_ids.size() > 0, "iarc7_safety: bondId list is empty");
