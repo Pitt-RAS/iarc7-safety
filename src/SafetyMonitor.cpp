@@ -25,9 +25,6 @@
 // Hearbeat interval in seconds
 const float kHeartbeatSec = 0.2;
 
-// Time until a bond timeout after last received heartbeat
-const float kTimeoutSec = 0.5;
-
 // Rate in hz to check the bonds. Make it loop three times faster than the heartbeats
 const float kLoopFrequencyHz = 1.0/(kHeartbeatSec/3.0);
 
