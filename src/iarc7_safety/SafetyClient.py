@@ -43,6 +43,7 @@ class SafetyClient:
             if self._formed:
                 return True
             rospy.sleep(0.1)
+        return False
 
     # Private method
     def _process_safety_message(self, message):
