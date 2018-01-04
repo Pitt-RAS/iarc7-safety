@@ -83,6 +83,16 @@ bool SafetyClient::isFatalActive()
     return fatal_active_;
 }
 
+void SafetyClient::setSafetyResponseActive()
+{
+    safety_response_activated_ = true;
+}
+
+bool SafetyClient::isSafetyResponseActive()
+{
+    return safety_response_activated_;
+}
+
 void SafetyClient::onBroken()
 {
     broken_ = true;

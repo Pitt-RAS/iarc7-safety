@@ -20,6 +20,7 @@ class SafetyClient:
         self._broken = False
         self._safetyActive = False
         self._fatalActive = False
+        self._safetyResponseActive = False
         self._bondId = bondId
 
         self._bond.set_heartbeat_period(0.2)
@@ -60,6 +61,12 @@ class SafetyClient:
 
     def is_fatal_active(self):
         return self._fatalActive
+
+    def set_safety_response_active(self):
+        self._safetyResponseActive = True
+
+    def is_safety_response_active(self):
+        return self._safetyResponseActive
 
     # Private method
     def _on_broken(self):

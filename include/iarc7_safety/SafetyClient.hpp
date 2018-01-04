@@ -35,6 +35,8 @@ public:
 
     bool isSafetyActive();
     bool isFatalActive();
+    void setSafetyResponseActive();
+    bool isSafetyResponseActive();
 
     const std::string getId() const;
 
@@ -54,6 +56,7 @@ private:
 
     bool fatal_active_{false};
     bool safety_active_{false};
+    bool safety_response_activated_{false};
     
     bool formed_{false};
     bool broken_{false};
