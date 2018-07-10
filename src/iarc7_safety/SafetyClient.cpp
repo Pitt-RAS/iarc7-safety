@@ -16,11 +16,20 @@
 
 using namespace Iarc7Safety;
 
-SafetyClient::SafetyClient(ros::NodeHandle& nh, const std::string bond_id) :
-bond_id_(bond_id),
-bond_("bond_topic", bond_id_, std::bind(&SafetyClient::onBroken, this), std::bind(&SafetyClient::onFormed, this))
+SafetyClient::SafetyClient(ros::NodeHandle& nh,
+                           const std::string bond_id,
+                           bool log_for_client)
+    : bond_id_(bond_id),
+      bond_("bond_topic",
+            bond_id_,
+            std::bind(&SafetyClient::onBroken, this),
+            std::bind(&SafetyClient::onFormed, this)),
+      log_for_client_(log_for_client)
 {
-    safety_subscriber_ = nh.subscribe("safety", 100, &SafetyClient::processSafetyMessage, this);
+    safety_subscriber_ = nh.subscribe("safety",
+                                      100,
+                                      &SafetyClient::processSafetyMessage,
+                                      this);
     bond_.setHeartbeatPeriod(0.2);
     bond_.setHeartbeatTimeout(1.5);
     bond_.setConnectTimeout(60.0);
@@ -28,7 +37,9 @@ bond_("bond_topic", bond_id_, std::bind(&SafetyClient::onBroken, this), std::bin
 
 bool SafetyClient::formBond()
 {
-    ROS_INFO("safety_client: trying to form bond %s", bond_.getId().c_str());
+    if (log_for_client_) {
+        ROS_INFO("safety_client: trying to form bond %s", bond_.getId().c_str());
+    }
 
     // Try to start the bond
     bond_.start();
