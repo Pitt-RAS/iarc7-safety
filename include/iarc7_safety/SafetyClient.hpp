@@ -20,7 +20,9 @@ class SafetyClient
 {
 public:
 
-    SafetyClient(ros::NodeHandle& nh, const std::string bond_id);
+    SafetyClient(ros::NodeHandle& nh,
+                 const std::string bond_id,
+                 bool log_for_client=true);
 
     SafetyClient() = delete;
     ~SafetyClient() = default;
@@ -54,10 +56,12 @@ private:
     const std::string bond_id_;
     bond::Bond bond_;
 
+    const bool log_for_client_;
+
     bool fatal_active_{false};
     bool safety_active_{false};
     bool safety_response_activated_{false};
-    
+
     bool formed_{false};
     bool broken_{false};
 

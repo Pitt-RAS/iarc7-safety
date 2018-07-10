@@ -37,7 +37,7 @@ int main(int argc, char **argv)
    ros::init(argc, argv, "iarc7_safety");
    
    // Print out that the node has started
-   ROS_INFO("node_monitor has started.");
+   ROS_DEBUG("node_monitor has started.");
 
    // Create a handle for this particular node, which is
    // responsible for handling all of the ROS communications
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
    {
       ROS_INFO("iarc7_safety: Starting bond: %s", bond_id.c_str());
 
-      std::unique_ptr<Iarc7Safety::SafetyClient> bond_ptr(new Iarc7Safety::SafetyClient(nh, bond_id));
+      std::unique_ptr<Iarc7Safety::SafetyClient> bond_ptr(new Iarc7Safety::SafetyClient(nh, bond_id, false));
 
       // Start the bond
       bool success = bond_ptr->formBond();
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
       else
       {
          ROS_ERROR("iarc7_safety: Could not make bond: %s", bond_ptr->getId().c_str());
-         
+
          // Stop making bonds and immediately set the lowest_safe_priority to fatal.
          // The program did not start correctly.
          lowest_safe_priority = -1;
